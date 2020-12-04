@@ -51,9 +51,9 @@ const UserPage = (function(){
       ],
       'meta2': [
         '[ ] { } # % ^ * + =',
-        '_ \\ | ~ < > $ \u00a3 \u00a5 {bksp}',
-        '{meta1} . , ? ! \' "',
-        '{normal} {space {accept}}'
+        '_ \\ | ~ < > $ \u00a3 \u00a5',
+        '{meta1} . , ? ! \' {bksp}',
+        '{normal} {space} {accept}'
       ]
     },
     beforeVisible: function(event, keyboard, el) {
