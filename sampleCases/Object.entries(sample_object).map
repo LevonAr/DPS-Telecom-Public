@@ -1,3 +1,9 @@
+// Readability tab for the analysis app has a good example of mapping a complex object into a table 
+// Lines 116-122 
+// 
+
+
+
 const ReadTab = (function (){
     async function draw() {
         const pageElement = document.getElementById("page-content-general");
