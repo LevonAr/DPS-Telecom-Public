@@ -34,3 +34,31 @@ const ExtTab = (function (){
             document.getElementById("useredit").value = c;
         }
     }
+    
+
+    const insidein = document.createElement('div')
+    insidein.setAttribute("id", "choices")
+    insidein.innerHTML = `
+        <input type="checkbox" id="cb1" class="cb-sbs" key="extract-det-all" onclick="ExtTab.selectview('cb-sbs')"  checked>
+        <label for="cb1">All</label>
+        <input type="checkbox" id="cb4" class="cb-sbs" key="extract-det-cms-text" onclick="ExtTab.selectview('cb-sbs')">
+        <label for="cb4">CMS</label>
+        <input type="checkbox" id="cb2" class="cb-sbs" key="extract-det-hb" onclick="ExtTab.selectview('cb-sbs')">
+        <label for="cb2">Extractor</label>
+        <input type="checkbox" id="cb3" class="cb-sbs" key="extract-det-firefox" onclick="ExtTab.selectview('cb-sbs')">
+        <label for="cb3">Firefox</label>
+        <input type="checkbox" id="cb5" class="cb-sbs" key="extract-det-cms-html" onclick="ExtTab.selectview('cb-sbs')">
+        <label for="cb5">CMS HTML</label>
+        <div style="border-top: 1px solid #ccc; margin-top: 40px;"></div>      
+    `;
+
+    const radioin = document.createElement('div')
+    radioin.setAttribute("id", "rchoices")
+    radioin.innerHTML = `
+        <input type="radio" name="comp" id="cb4" class="cb-comp" key="all-e" onclick="ExtTab.selectview('cb-comp')" checked>
+        <label for="cb4">All vs Extracted</label>
+        <input type="radio" name="comp" id="cb5" class="cb-comp" key="e-f"   onclick="ExtTab.selectview('cb-comp')">
+        <label for="cb5">Extractor vs Firefox</label>
+        <input type="radio" name="comp" id="cb6" class="cb-comp" key="f-all" onclick="ExtTab.selectview('cb-comp')">
+        <label for="cb6">Firefox vs All</label>
+    `;    
