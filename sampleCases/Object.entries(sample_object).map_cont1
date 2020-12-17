@@ -1,3 +1,8 @@
+// this is the extraction tab for the analysis app
+// I created another MDC table by mapping an object here
+// Another sample for map() basically, but this time I mapped the object to "rotate" the data structure essentially
+// line 524 - 575
+
 const ExtTab = (function (){
     // create Comparitor options
     const COMP_CONFIG = [
