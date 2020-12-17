@@ -62,3 +62,45 @@ const ExtTab = (function (){
         <input type="radio" name="comp" id="cb6" class="cb-comp" key="f-all" onclick="ExtTab.selectview('cb-comp')">
         <label for="cb6">Firefox vs All</label>
     `;    
+
+    function showkwd() {
+        tabProgress.foundation.adapter.addClass("loading");
+        fetch('/api/keyword', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                test: document.getElementById("useredit").value,
+            })
+        })
+            .then(response => response.json())
+            //.then(console.log)
+            //
+            .then(data => {
+                // remove loader
+                tabProgress.foundation.adapter.removeClass("loading");
+                var obj = JSON.stringify(data)
+                console.log("stuff is here", obj)
+                document.getElementById("kwdbox").innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr);">
+                        ${Object.entries(data.result).map(([key, value]) => `
+                            <div style="border: solid 1px; padding: 10px; margin: 13px; border-radius: 4px; border-color: rgba(0,0,0,.12);">
+                                <b size="12">${key}</b>
+                                <br>
+                                <ol>
+                                    ${value.map((item, i) => `
+                                        <li><b>${item[0]}</b> ${MathUtils.displayFloat(item[1])}<br></li>
+                                    `).join("")}
+                                </ol>
+                            </div>
+                            `).join("")}
+                    </div>
+                `;
+                document.getElementById("readbox").style.display = "none";
+                document.getElementById("kwdbox").style.display = "block";
+            })
+    }
+    //                                        ${MathUtils.displayFloat(item[1])}<br>
+
