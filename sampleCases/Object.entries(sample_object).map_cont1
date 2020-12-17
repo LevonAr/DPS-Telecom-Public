@@ -104,3 +104,593 @@ const ExtTab = (function (){
     }
     //                                        ${MathUtils.displayFloat(item[1])}<br>
 
+    function showreadability() {
+        fetch('/api/readability', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                rdb_test: document.getElementById("useredit").value
+            })
+        })
+            .then(response => response.json())
+            .then(json => {
+                document.getElementById("readbox").style.display = "block";
+                document.getElementById("kwdbox").style.display = "none";
+
+                document.getElementById("rdb-at-d1").innerHTML = json.statistics.avg_syllables_per_word.toFixed(2);
+                document.getElementById("rdb-at-d2").innerHTML = json.statistics.avg_words_per_sentence.toFixed(2);
+                document.getElementById("rdb-at-d3").innerHTML = json.statistics.num_letters;
+                document.getElementById("rdb-at-d4").innerHTML = json.statistics.num_polysyllabic_words;
+                document.getElementById("rdb-at-d5").innerHTML = json.statistics.num_sentences;
+                document.getElementById("rdb-at-d6").innerHTML = json.statistics.num_words;
+
+                document.getElementById("rdb-ana-d1").innerHTML = json.analysis.ari.score.toFixed(2);
+                document.getElementById("rdb-ana-d2").innerHTML = json.analysis.flesch_kincaid.score.toFixed(2);
+                document.getElementById("rdb-ana-d5").innerHTML = json.analysis.gunning_fog.score.toFixed(2);
+                document.getElementById("rdb-ana-d4").innerHTML = json.analysis.linsear_write.score.toFixed(2);
+                document.getElementById("rdb-ana-d6").innerHTML = json.analysis.smog.score.toFixed(2);
+
+                document.getElementById("rdb-gl-d1").innerHTML = json.analysis.ari.grade_level
+                document.getElementById("rdb-gl-d2").innerHTML = json.analysis.flesch_kincaid.grade_level
+                document.getElementById("rdb-gl-d5").innerHTML = json.analysis.gunning_fog.grade_level
+                document.getElementById("rdb-gl-d4").innerHTML = json.analysis.linsear_write.grade_level
+                document.getElementById("rdb-gl-d6").innerHTML = json.analysis.smog.grade_level
+            });
+    }
+
+        var tabs= document.createElement('div')
+        tabs.innerHTML=` 
+        <div id="extraction-tabbar" class="mdc-tab-bar" role="tablist">
+            <div class="mdc-tab-scroller" >
+                <div class="mdc-tab-scroller__scroll-area">
+                    <div class="mdc-tab-scroller__scroll-content">
+
+                        <button class="mdc-tab mdc-tab--active" role="tab" aria-selected="true" tabindex="0">
+                            <span class="mdc-tab__content">
+                                <span class="mdc-tab__text-label">Side-by-Side</span>
+                            </span>
+                            <span class="mdc-tab-indicator mdc-tab-indicator--active">
+                                <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                            </span>
+                            <span class="mdc-tab__ripple"></span>
+                        </button>
+                        <button class="mdc-tab mdc-tab" role="tab" aria-selected="true" tabindex="1">
+                            <span class="mdc-tab__content">
+                                <span class="mdc-tab__text-label">Compare</span>
+                            </span>
+                            <span class="mdc-tab-indicator mdc-tab-indicator">
+                                <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                            </span>
+                            <span class="mdc-tab__ripple"></span>
+                        </button>
+                        <button class="mdc-tab mdc-tab" role="tab" aria-selected="true" tabindex="2">
+                            <span class="mdc-tab__content">
+                                <span class="mdc-tab__text-label">Stats</span>
+                            </span>
+                            <span class="mdc-tab-indicator mdc-tab-indicator">
+                                <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                            </span>
+                            <span class="mdc-tab__ripple"></span>
+                        </button>
+                        <button class="mdc-tab mdc-tab" role="tab" aria-selected="true" tabindex="3">
+                            <span class="mdc-tab__content">
+                                <span class="mdc-tab__text-label">Editor</span>
+                            </span>
+                            <span class="mdc-tab-indicator mdc-tab-indicator">
+                                <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                            </span>
+                            <span class="mdc-tab__ripple"></span>
+                        </button>   
+                    </div>
+                </div>
+            </div>
+        </div>`
+
+    async function draw() {
+        const pageElement = document.getElementById("page-content-general");
+
+        // set page to loading
+        tabProgress.foundation.adapter.addClass("loading");
+        pageElement.innerHTML = '';
+
+        // get homebrew extracted content
+        const { content, id: pageID } = PageState.getCurrentPage();
+
+        // get FireFox Content
+        const dTitle = '*none*';
+        const ifrm = document.getElementById('page-viewer');
+        const text = await fetch(ifrm.src).then(resp => resp.text());
+        const doc = TextUtils.generateDocumant(text)
+        const readable = isProbablyReaderable(doc);
+        const article = new Readability(doc).parse() || {};
+        // get base content
+        const allPageText = TextUtils.stripTags(text);
+        // get cms text
+        const websiteFile = await Page.getWebsiteFile(pageID);
+        const websiteFileHTML = websiteFile.file_content;
+        const websiteFileContent = TextUtils.stripTags(websiteFile.file_content);
+
+        //get the extraction
+        const fileExtraction = await Page.getDets(pageID);
+        
+        // stop loading
+        tabProgress.foundation.adapter.removeClass("loading");
+        pageElement.innerHTML = `
+        <div class="mdc-layout-grid__inner">
+            <div class="mdc-layout-grid__cell mdc-card demo-card mdc-layout-grid__cell--span-12" style="padding: 10px">
+               
+                <!--Include Tab Contents Here -->
+                                <div class="extr-content--active extr-content" >
+                                    <div id="choices-container">
+                                    </div>
+                                    <div style="display:flex">
+                                        <div id="extract-det-all" style="flex: 1 1 0; width: 0; display: flex;">
+                                            <div>
+                                                <h4>All Content</h4>
+                                                <p style="border-right: .75px solid #ccc; padding: 10px; border-left: .75px solid #ccc;">${allPageText || dTitle}</p>
+                                            </div>
+                                        </div>
+                                        <div id="extract-det-cms-text" style="flex: 1 1 0; width: 0; display: none;">
+                                            <div>
+                                                <h4>CMS Content</h4>
+                                                <p style="border-right: .75px solid #ccc; padding: 10px; border-left: .75px solid #ccc;">${websiteFileContent || dTitle}</p>
+                                            </div>
+                                        </div>
+                                        <div id="extract-det-hb" style="flex: 1 1 0; width: 0; display: none;">
+                                            <div>
+                                                <h4>Ext. Content</h4>
+                                                <p style="border-right: .75px solid #ccc; padding: 10px; border-left: .75px solid #ccc;">${content || dTitle}</p>
+                                            </div>
+                                        </div>
+                                        <div id="extract-det-firefox" style="flex: 1 1 0; width: 0; display: none;">
+                                            <div>
+                                                <h4>Firefox Content</h4>
+                                                <p style="border-right: .75px solid #ccc; padding: 10px; border-left: .75px solid #ccc;">${article.textContent || dTitle}</p>
+                                            </div>
+                                        </div>
+                                        <div id="extract-det-cms-html" style="flex: 1 1 0; width: 0; display: none;">
+                                            <div>
+                                                <h4>CMS HTML</h4>
+                                                <pre
+                                                    id="cms-html-content"
+                                                    style="
+                                                        white-space: pre-wrap;
+                                                        white-space: -moz-pre-wrap;
+                                                        white-space: -pre-wrap;
+                                                        white-space: -o-pre-wrap;
+                                                        word-wrap: break-word;
+                                                        border-right: .75px solid #ccc; padding: 10px; border-left: .75px solid #ccc;
+                                                    "
+                                                ></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="extr-content" >
+                                    <div id="radio-container" style="display: flex; justify-content: space-between;"></div>
+                                    <div class="mdc-layout-grid__cell mdc-card demo-card mdc-layout-grid__cell--span-12" style="padding: 10px; box-shadow: none; margin: 10px; border-top: 1px solid #ccc; margin-top: 2em; padding-top: 2em;">
+                                        <div id="comparison-text"></div>
+                                    </div>
+                                </div>
+
+                                <div  class="extr-content" >
+                                    <div style="display: flex; justify-content: space-around; padding-bottom: 40px; align-content: stretch">
+                                        <div class="outer-card-stat">
+                                            <div class="inner-top-number">${(fileExtraction.distance).toFixed(2)}</div>
+                                            <div class="inner-middle-divider"></div>
+                                            <h3 class="inner-bottom-text">Euclidian Distance of CSM and Firefox</h3>
+                                        </div>
+                                        <div class="outer-card-stat">
+                                            <div class="inner-top-number">${fileExtraction['deepest']}</div>
+                                            <div class="inner-middle-divider"></div>
+                                            <h3 class="inner-bottom-text">Deepest Nesting</h3>
+                                        </div> 
+                                    </div>
+                                    
+                                    <div id="extStatTable" style="display:flex; width: 100%"></div>
+                                        
+
+                                    <div class="mdc-data-table" style="width: 48%; float: left; margin-top: 20px;">
+                                        <table class="mdc-data-table__table">
+                                            <thead>
+                                                <tr class="mdc-data-table__header-row">
+                                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Title</th>
+                                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="mdc-data-table__content">
+                                                <tr data-row-id="u64" class="mdc-data-table__row">
+                                                    <td id="u64"      class="mdc-data-table__cell">Uniwords</td>
+                                                    <td id="ff-tit1"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                                </tr>
+                                                <tr data-row-id="u65" class="mdc-data-table__row">
+                                                    <td id="u65"      class="mdc-data-table__cell">Words</td>
+                                                    <td id="ff-tit2"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div class="mdc-data-table" style="width: 48%; float: right; margin-top: 20px;">
+                                        <table class="mdc-data-table__table">
+                                            <thead>
+                                                <tr class="mdc-data-table__header-row">
+                                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Complexity</th>
+                                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="mdc-data-table__content">
+                                                <tr data-row-id="u68" class="mdc-data-table__row">
+                                                    <td  class="mdc-data-table__cell">Elements with no children</td>
+                                                    <td  class="mdc-data-table__cell mdc-data-table__cell--numeric">${fileExtraction['no_kids']}</td>
+                                                </tr>
+                                                <tr data-row-id="u68" class="mdc-data-table__row">
+                                                    <td  class="mdc-data-table__cell">Elements with 1-2 children</td>
+                                                    <td  class="mdc-data-table__cell mdc-data-table__cell--numeric">${fileExtraction['_2kids']} </td>
+                                                </tr>
+                                                <tr data-row-id="u68" class="mdc-data-table__row">
+                                                    <td  class="mdc-data-table__cell">Elements with 3+ children</td>
+                                                    <td  class="mdc-data-table__cell mdc-data-table__cell--numeric">${fileExtraction['_3more']}</td>
+                                                </tr>
+                                                <tr data-row-id="u68" class="mdc-data-table__row">
+                                                    <td  class="mdc-data-table__cell">Deepest nesting</td>
+                                                    <td  class="mdc-data-table__cell mdc-data-table__cell--numeric">${fileExtraction['deepest']}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <div class="extr-content" >
+                                    <textarea id="useredit" rows="18" cols="100" style="width:100%; border-radius: var(--mdc-shape-medium, 4px); border-width: 1px; border-style: solid; border-color: rgba(0,0,0,.12);"></textarea>
+                                    <div> Prefill options:
+                                        <input type="radio" id="cb7" name="editarea"  checked>
+                                        <label for="cb7">All</label>
+                                        <input type="radio" id="cb8" name="editarea">
+                                        <label for="cb8">Extractor</label>
+                                        <input type="radio" id="cb9"  name="editarea">
+                                        <label for="cb9">Firefox</label>
+                                    </div>
+                                    <button id="dokwd" onClick="ExtTab.showkwd()" class="mdc-button mdc-button--unelevated" style=" width: 48%">KWD</button>
+                                    <button id="doread" onClick="ExtTab.showreadability()" class="mdc-button mdc-button--unelevated" style="float:right; width: 48%">Readability</button>
+                                    <div id="kwdbox" style="height:100%; display:none" ></div>
+                                    <div id="readbox" style="height:100%; display:none" >
+                                        <div style="float:left">
+                                            <h2>Reabadility Statistics</h2>
+                                            <table class="mdc-data-table__table">
+                                            <thead>
+                                            <tr class="mdc-data-table__header-row">
+                                            <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Variable Key</th>
+                                            <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Value</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody class="mdc-data-table__content">
+                                            <tr data-row-id="u57" class="mdc-data-table__row">
+                                            <td id="u57" class="mdc-data-table__cell">Syllables/Word</td>
+                                            <td id="rdb-at-d1" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            <tr data-row-id="u58" class="mdc-data-table__row">
+                                            <td id="u58" class="mdc-data-table__cell">Words/Sentence</td>
+                                            <td id="rdb-at-d2" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            </tr>
+                                            <tr data-row-id="u59" class="mdc-data-table__row">
+                                            <td id="u59" class="mdc-data-table__cell">Sentences</td>
+                                            <td id="rdb-at-d5" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            </tr>
+                                            <tr data-row-id="u60" class="mdc-data-table__row">
+                                            <td id="u60" class="mdc-data-table__cell">Poly Words</td>
+                                            <td id="rdb-at-d4" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            </tr>
+                                            <tr data-row-id="u61" class="mdc-data-table__row">
+                                            <td id="u61" class="mdc-data-table__cell">Words</td>
+                                            <td id="rdb-at-d6" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            </tr>
+                                            <tr data-row-id="u62" class="mdc-data-table__row">
+                                            <td id="u62" class="mdc-data-table__cell">Letters</td>
+                                            <td id="rdb-at-d3" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            </tr>
+                                            </tbody>
+
+                                            </table>
+                                        </div>
+                                        <div style="float:right;">
+                                            <h2>Reabadility Analysis</h2>
+                                            <table class="mdc-data-table__table">
+                                            <thead>
+                                            <tr class="mdc-data-table__header-row">
+                                            <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Test Type</th>
+                                            <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Score</th>
+                                            <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Grade Level</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody class="mdc-data-table__content">
+                                            <tr data-row-id="u57" class="mdc-data-table__row">
+                                            <td id="u57" class="mdc-data-table__cell">ARI</td>
+                                            <td id="rdb-ana-d1" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            <td id="rdb-gl-d1" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            </tr>
+                                            <tr data-row-id="u58" class="mdc-data-table__row">
+                                            <td id="u58" class="mdc-data-table__cell">Flesch Kincaid</td>
+                                            <td id="rdb-ana-d2" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            <td id="rdb-gl-d2" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            </tr>
+                                            <tr data-row-id="u59" class="mdc-data-table__row">
+                                            <td id="u59" class="mdc-data-table__cell">Gunning Fog</td>
+                                            <td id="rdb-ana-d5" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            <td id="rdb-gl-d5" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            </tr>
+                                            <tr data-row-id="u60" class="mdc-data-table__row">
+                                            <td id="u60" class="mdc-data-table__cell">Linsear Write</td>
+                                            <td id="rdb-ana-d4" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            <td id="rdb-gl-d4" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            </tr>
+                                            <tr data-row-id="u61" class="mdc-data-table__row">
+                                            <td id="u61" class="mdc-data-table__cell">SMOG</td>
+                                            <td id="rdb-ana-d6" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            <td id="rdb-gl-d6" class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                            </tr>
+                                            </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+            </div>
+        </div>
+        `;
+        pageElement.prepend(tabs)
+        // initializing new tabbar
+        var extTabBar = new mdc.tabBar.MDCTabBar(pageElement.querySelector('#extraction-tabbar'));
+        var contentEls = pageElement.querySelectorAll('.extr-content');
+        console.log("contentEls", contentEls)
+        extTabBar.listen('MDCTabBar:activated', function(event) {
+            console.log("event",event)
+            // hide 
+            const currentEl = pageElement.querySelector('.extr-content--active')
+            try {currentEl.classList.remove('extr-content--active');
+            currentEl.classList.add('extr-content');}
+            catch {};
+            // show
+            contentEls[event.detail.index].classList.add('extr-content--active');
+            pos = event.detail.index
+        })
+        contentEls[0].classList.remove('extr-content--active');
+        contentEls[0].classList.add('extr-content');
+        contentEls[pos].classList.add('extr-content--active');
+        // set text content for website file html
+        document.getElementById('cms-html-content')
+            .innerText = websiteFileHTML || dTitle;
+
+        filltext(allPageText, content, article.textContent)
+        document.getElementById('cb7')
+            .addEventListener("click", () => filltext(allPageText, content, article.textContent));
+        document.getElementById('cb8')
+            .addEventListener("click", () => filltext(allPageText, content, article.textContent));
+        document.getElementById('cb9')
+            .addEventListener("click", () => filltext( allPageText, content, article.textContent));
+        
+        const choicesContainerEl = document.getElementById("choices-container");
+        choicesContainerEl.removeChild(choicesContainerEl.firstChild);
+        choicesContainerEl.append(insidein);
+        ExtTab.selectview('cb-sbs');
+
+        const rchoicesContainerEl = document.getElementById("radio-container");
+        console.log("rchoicesContainerEl", rchoicesContainerEl)
+        //rchoicesContainerEl.removeChild(rchoicesContainerEl.firstChild);
+        rchoicesContainerEl.append(compLeft, compRight);
+        function handleCompOptionSelect() {
+            let textValues = [compLeftMDC.value, compRightMDC.value]
+                .map(val => {
+                    switch (val) {
+                        case 'all-text': return allPageText || '';
+                        case 'cms-text': return websiteFileContent || '';
+                        case 'extractor': return content || '';
+                        case 'firefox': return article.textContent || '';
+                        default: return '';
+                    }
+
+                })
+            document.getElementById('comparison-text')
+                .innerHTML = TextUtils.diffString(...textValues);
+        }
+
+        compLeftMDC.listen("MDCSelect:change", handleCompOptionSelect);
+        compRightMDC.listen("MDCSelect:change", handleCompOptionSelect);
+        handleCompOptionSelect();
+        fetch('/api/extraction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                texts: {
+                    all_text: allPageText,
+                    cms_text: websiteFileContent,
+                    rab_extract: content,
+                    ff_extract: article.textContent,
+                },
+                titles: {
+                    ff_title: article.title,
+                }
+            })
+        })
+            .then(response => response.json())
+            .then(json => {
+                const titleAnalysis = json.titles;
+                const textAnalysis = json.texts;
+                console.log('textAnalysis', textAnalysis);
+                console.log("Object.entries(textAnalysis)", Object.entries(textAnalysis));
+                let rotatedTextAnalysis = {
+                    "avg_syllables_per_word" : {},
+                    "avg_words_per_sentence" : {},
+                    "num_letters"            : {},
+                    "num_polysyllabic_words" : {},
+                    "num_sentences"          : {},
+                    "num_words"              : {},
+                    "sent_gt_count"          : {},
+                    "uniwords"               : {},
+                    "word_gt_count"          : {}
+                };
+                Object.entries(textAnalysis).map(([key,{avg_syllables_per_word, avg_words_per_sentence, num_letters, num_polysyllabic_words, num_sentences, num_words, sent_gt_count, uniwords, word_gt_count}]) => {
+                    rotatedTextAnalysis["avg_syllables_per_word"][key] = avg_syllables_per_word;
+                    rotatedTextAnalysis["avg_words_per_sentence"][key] = avg_words_per_sentence;
+                    rotatedTextAnalysis["num_letters"][key]            = num_letters;
+                    rotatedTextAnalysis["num_polysyllabic_words"][key] = num_polysyllabic_words;
+                    rotatedTextAnalysis["num_sentences"][key]          = num_sentences;
+                    rotatedTextAnalysis["num_words"][key]              = num_words;
+                    rotatedTextAnalysis["sent_gt_count"][key]          = sent_gt_count;
+                    rotatedTextAnalysis["uniwords"][key]               = uniwords;
+                    rotatedTextAnalysis["word_gt_count"][key]          = word_gt_count;
+
+                });
+                console.log("rotatedTextAnalysis", rotatedTextAnalysis);
+                document.getElementById("extStatTable").innerHTML = 
+                    `<table class="mdc-data-table__table" style="border: 1px solid rgba(0,0,0, .12);">
+                        <thead>
+                            <tr class="mdc-data-table__header-row">
+                                <th class="mdc-data-table__header-cell" role="columnheader" style="text-align:center; border: 1px solid rgba(0,0,0, .12);">Parameter</th>
+                                <th class="mdc-data-table__header-cell" role="columnheader" style="text-align:center; border: 1px solid rgba(0,0,0, .12);">all_text</th>
+                                <th class="mdc-data-table__header-cell" role="columnheader" style="text-align:center; border: 1px solid rgba(0,0,0, .12);">cms_text</th>
+                                <th class="mdc-data-table__header-cell" role="columnheader" style="text-align:center; border: 1px solid rgba(0,0,0, .12);">ff_extract</th>
+                                <th class="mdc-data-table__header-cell" role="columnheader" style="text-align:center; border: 1px solid rgba(0,0,0, .12);">rab_extract</th>
+                            <tr>
+                        </thead>
+                        <tbody class="mdc-data-table__content">
+                        ${Object.entries(rotatedTextAnalysis).map(([parameter, {all_text, cms_text, ff_extract, rab_extract}]) => 
+                            `<tr class="mdc-data-table__row">
+                                <td class="mdc-data-table__cell">${parameter}</td>
+                                <td class="mdc-data-table__cell mdc-data-table__cell--numeric">${MathUtils.displayFloat(all_text)}</td>
+                                <td class="mdc-data-table__cell mdc-data-table__cell--numeric">${MathUtils.displayFloat(cms_text)}</td>
+                                <td class="mdc-data-table__cell mdc-data-table__cell--numeric">${MathUtils.displayFloat(ff_extract)}</td>
+                                <td class="mdc-data-table__cell mdc-data-table__cell--numeric">${MathUtils.displayFloat(rab_extract)}</td>
+                            </tr>
+                            `).join("")}
+                        </tbody>
+                    </table>
+                    `
+
+
+
+
+
+
+
+/* 
+                    <table class="mdc-data-table__table">
+                        <thead>
+                            <tr class="mdc-data-table__header-row">
+                                <th class="mdc-data-table__header-cell" role="columnheader" scope="col">CMS|Ext</th>
+                                <th class="mdc-data-table__header-cell" role="columnheader" scope="col">CMS|FF</th>
+                                <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Ext|FF</th>
+                            </tr>
+                        </thead>
+                        <tbody class="mdc-data-table__content">
+                            <tr data-row-id="u57" class="mdc-data-table__row">
+                                <td id="ae-d1"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="af-d1"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="ef-d1"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                            </tr>
+                            <tr data-row-id="u58" class="mdc-data-table__row">
+                                <td id="ae-d2"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="af-d2"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="ef-d2"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                            </tr>
+                            <tr data-row-id="u59" class="mdc-data-table__row">
+                                <td id="ae-d5"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="af-d5"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="ef-d5"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                            </tr>
+                            <tr data-row-id="u60" class="mdc-data-table__row">
+                                <td id="ae-d4"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="af-d4"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="ef-d4"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                            </tr>
+                            <tr data-row-id="u61" class="mdc-data-table__row">
+                                <td id="ae-d6"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="af-d6"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="ef-d6"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                            </tr>
+                            <tr data-row-id="u62" class="mdc-data-table__row">
+                                <td id="ae-d3"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="af-d3"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="ef-d3"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                            </tr>
+                            <tr data-row-id="u63" class="mdc-data-table__row">
+                                <td id="ae-d7"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="af-d7"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="ef-d7"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                            </tr>
+                            <tr data-row-id="u64" class="mdc-data-table__row">
+                                <td id="ae-d8"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="af-d8"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="ef-d8"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                            </tr>
+                            <tr data-row-id="u65" class="mdc-data-table__row">
+                                <td id="ae-d9"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="af-d9"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                                <td id="ef-d9"  class="mdc-data-table__cell mdc-data-table__cell--numeric"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+
+
+
+
+
+
+
+
+
+*/
+
+
+
+
+
+
+
+                console.log("table stuff",textAnalysis)
+
+                document.getElementById("ae-d1").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.avg_syllables_per_word - textAnalysis.rab_extract.avg_syllables_per_word, 2)).toFixed(2);
+                document.getElementById("ae-d2").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.avg_words_per_sentence - textAnalysis.rab_extract.avg_words_per_sentence, 2)).toFixed(2);
+                document.getElementById("ae-d3").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.num_letters - textAnalysis.rab_extract.num_letters, 2));
+                document.getElementById("ae-d4").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.num_polysyllabic_words - textAnalysis.rab_extract.num_polysyllabic_words, 2));
+                document.getElementById("ae-d5").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.num_sentences - textAnalysis.rab_extract.num_sentences, 2));
+                document.getElementById("ae-d6").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.num_words - textAnalysis.rab_extract.num_words, 2));
+                document.getElementById("ae-d7").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.sent_gt_count - textAnalysis.rab_extract.sent_gt_count, 2));
+                document.getElementById("ae-d9").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.uniwords - textAnalysis.rab_extract.uniwords, 2));
+                document.getElementById("ae-d8").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.word_gt_count - textAnalysis.rab_extract.word_gt_count, 2));
+
+                document.getElementById("af-d1").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.avg_syllables_per_word - textAnalysis.ff_extract.avg_syllables_per_word, 2)).toFixed(2);
+                document.getElementById("af-d2").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.avg_words_per_sentence - textAnalysis.ff_extract.avg_words_per_sentence, 2)).toFixed(2);
+                document.getElementById("af-d3").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.num_letters - textAnalysis.ff_extract.num_letters, 2));
+                document.getElementById("af-d4").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.num_polysyllabic_words - textAnalysis.ff_extract.num_polysyllabic_words, 2));
+                document.getElementById("af-d5").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.num_sentences - textAnalysis.ff_extract.num_sentences, 2));
+                document.getElementById("af-d6").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.num_words - textAnalysis.ff_extract.num_words, 2));
+                document.getElementById("af-d7").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.sent_gt_count - textAnalysis.ff_extract.sent_gt_count, 2));
+                document.getElementById("af-d9").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.uniwords - textAnalysis.ff_extract.uniwords, 2));
+                document.getElementById("af-d8").innerHTML = Math.sqrt(Math.pow(textAnalysis.cms_text.word_gt_count - textAnalysis.ff_extract.word_gt_count, 2));
+
+                document.getElementById("ef-d1").innerHTML = Math.sqrt(Math.pow(textAnalysis.rab_extract.avg_syllables_per_word - textAnalysis.ff_extract.avg_syllables_per_word, 2)).toFixed(2);
+                document.getElementById("ef-d2").innerHTML = Math.sqrt(Math.pow(textAnalysis.rab_extract.avg_words_per_sentence - textAnalysis.ff_extract.avg_words_per_sentence, 2)).toFixed(2);
+                document.getElementById("ef-d3").innerHTML = Math.sqrt(Math.pow(textAnalysis.rab_extract.num_letters - textAnalysis.ff_extract.num_letters, 2));
+                document.getElementById("ef-d4").innerHTML = Math.sqrt(Math.pow(textAnalysis.rab_extract.num_polysyllabic_words - textAnalysis.ff_extract.num_polysyllabic_words, 2));
+                document.getElementById("ef-d5").innerHTML = Math.sqrt(Math.pow(textAnalysis.rab_extract.num_sentences - textAnalysis.ff_extract.num_sentences, 2));
+                document.getElementById("ef-d6").innerHTML = Math.sqrt(Math.pow(textAnalysis.rab_extract.num_words - textAnalysis.ff_extract.num_words, 2));
+                document.getElementById("ef-d7").innerHTML = Math.sqrt(Math.pow(textAnalysis.rab_extract.sent_gt_count - textAnalysis.ff_extract.sent_gt_count, 2));
+                document.getElementById("ef-d9").innerHTML = Math.sqrt(Math.pow(textAnalysis.rab_extract.uniwords - textAnalysis.ff_extract.uniwords, 2));
+                document.getElementById("ef-d8").innerHTML = Math.sqrt(Math.pow(textAnalysis.rab_extract.word_gt_count - textAnalysis.ff_extract.word_gt_count, 2));
+
+                document.getElementById("ff-tit1").innerHTML = titleAnalysis.ff_title.uniwords;
+                document.getElementById("ff-tit2").innerHTML = titleAnalysis.ff_title.num_words;
+            });
+    }
+    return {
+        draw,
+        selectview,
+        showkwd,
+        showreadability
+    }
+
+})()
