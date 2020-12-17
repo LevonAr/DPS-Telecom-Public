@@ -1,0 +1,36 @@
+const ExtTab = (function (){
+    // create Comparitor options
+    const COMP_CONFIG = [
+        { value: 'all-text', label: 'All', selected: true },
+        { value: 'cms-text', label: 'CMS' },
+        { value: 'extractor', label: 'Extractor' },
+        { value: 'firefox', label: 'Firefox' }
+    ];
+    const compLeft = MDC_UTILS.createSelect('Compare Left', COMP_CONFIG);
+    const compRight = MDC_UTILS.createSelect('Compare Right', COMP_CONFIG);
+    const compLeftMDC = new mdc.select.MDCSelect(compLeft);
+    const compRightMDC = new mdc.select.MDCSelect(compRight);
+    ////////////////////////////////////////
+
+    var pos =0
+    function selectview(classname) {
+        [...document.getElementsByClassName(classname)]
+            .forEach(e => {
+                let key = e.getAttribute('key');
+                let displayElement = document.getElementById(key);
+                displayElement.style.display = e.checked ? '' : 'none';
+            });
+    }
+
+    function filltext(a, b, c) {
+        fill = document.querySelectorAll('input[name="editarea"]');
+        if (document.getElementById("cb7").checked) {
+            document.getElementById("useredit").value = a;
+        }
+        if (document.getElementById("cb8").checked) {
+            document.getElementById("useredit").value = b;
+        }
+        if (document.getElementById("cb9").checked) {
+            document.getElementById("useredit").value = c;
+        }
+    }
