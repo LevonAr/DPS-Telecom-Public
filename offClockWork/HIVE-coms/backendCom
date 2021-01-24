@@ -1,0 +1,24 @@
+const messageTypes = [
+    "appEvent", // message related alert
+    "appData", // data related to layout or display only
+    "zoneEvent", // event that is zone specific ie. estim firing or motor starting
+    "treatmentParam", // treatement parameters, length, duration, power, running ...
+    "treatmentEvent", // treatment event, treatment started, ended, paused
+    "treatmentData", // data about GSR, musclehardness
+];
+
+/***
+ * 
+ * 
+ * type DataEvent struct {
+	MessageType string
+	Name        string
+	Zone        int
+	Value       float64
+	UpdateValue bool
+	IntVal      int
+	StringVal   string
+	BoolVal     bool
+	UseVal      string
+}
+ */
